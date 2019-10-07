@@ -217,5 +217,36 @@ void SoftplusImpl::pretty_print(std::ostream& stream) const {
          << ", threshold=" << options.threshold() << ")";
 }
 
+MultiheadAttentionImpl::MultiheadAttentionImpl(const MultiheadAttentionOptions& options_)
+    : options(options_) {}
+
+Tensor MultiheadAttentionImpl::forward(const Tensor& query, const Tensor& key,
+  const Tensor& value, const c10::optional<Tensor>& key_padding_mask,
+  bool need_weights, const c10::optional<Tensor>& attn_mask) {
+  if (_qkv_same_embed_dim) {
+    return F::multi_head_attention_forward(
+      query, key, value, options.embed_dim(), options.num_heads(),
+      in_proj_weight, in_proj_bias,
+      bias_k, bias_v, options.add_zero_attn(),
+      options.dropout(), out_proj->weight, out_proj->bias,
+      is_training(), key_padding_mask, need_weights, attn_mask);
+  } else {
+    return F::multi_head_attention_forward(
+      query, key, value, options.embed_dim(), options.num_heads(),
+      in_proj_weight, in_proj_bias,
+      bias_k, bias_v, options.add_zero_attn(),
+      options.dropout(), out_proj->weight, out_proj->bias,
+      is_training(), key_padding_mask, need_weights,
+      attn_mask, /*use_separate_proj_weight=*/true,
+      q_proj_weight, k_proj_weight, v_proj_weight);
+  }
+}
+
+void MultiheadAttentionImpl::reset() {}
+
+void MultiheadAttentionImpl::pretty_print(std::ostream& stream) const {
+  stream << "torch::nn::MultiheadAttention(todo)";
+}
+
 } // namespace nn
 } // namespace torch
